@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "zydis.h": "c",
+        "disassembler.h": "c"
+    }
+}
