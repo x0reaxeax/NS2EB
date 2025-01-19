@@ -7,7 +7,7 @@ NS2EB is a small EFI application for fuzzing Model-Specific Registers (MSRs) in 
 ## Table of contents
  * [Features](#features)
  * [Why "NS2EB"?](#why-ns2eb)
- * [Getting Started](#getting-started")
+ * [Getting Started](#getting-started)
  * [Log file](#log-file)
 	 * [Sample Log Format](#sample-log-format)
 * [Graph](#graph)
