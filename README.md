@@ -56,6 +56,8 @@ Please refer to the following picture for technical explanation:
 	```bash
 	$ efi.efi
 	```
+ 	Preview:
+ 	![rundemo](https://i.imgur.com/WRQEo4w.png)
 ### Log File
 A logfile with a default name `ns2be.log` is generated on the same drive and directory where the application is located.
 
@@ -147,7 +149,6 @@ You can re-enable this by adding the following line next to any existing `%defin
 	* In order to prevent the logfile growing to massive sizes on the disk, the default `MSR_MAX` value is set to `0x100000` (1'048'576) MSRs, which will consume roughly **19.2MB** of disk space.
 	If the value is increased to maximum amount - `0xFFFFFFFF`, it should be expected the logfile growing to around **78.645GB**.
 	It is obviously recommended to test with smaller chunks.
-
 * #### Interrupt Handler and benchmarking
 	* The Interrupt Handler takes over execution on each attempt to read an invalid MSR, however, it should be noted that the Interrupt Handler executes all of its shenanigans first, before executing the second (closing) `RDTSC` instruction, to calculate a clock diff.
 		This should hopefully have no significant impact on the results, besides the invalid MSR times having a higher execution time ground.
@@ -155,6 +156,10 @@ You can re-enable this by adding the following line next to any existing `%defin
 * #### Testing on real hardware
 	* I hope it's fairly obvious that this tool should be used on your own risk, and that I am **NOT** responsible for any damages caused by this educational-purposes-based project.
 	This hacky superglued code can go haywire at any moment.
+* #### `ExecFlag` force-termination
+  	* The displayed `ExecFlag` variable is an `int32` flag that controls the execution of the fuzz loop.
+  	* Since there's no `CTRL-C`-like event handler, the flag can be used to gracefully terminate the loop early via a debugger or DMA.
+  	* The displayed value is the address of this flag.
 
 ### Credits
 
