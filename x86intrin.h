@@ -383,4 +383,8 @@ VOID InstallGPFaultHandler(
     VOID
 );
 
+VOID RestoreGPFaultHandler(
+    VOID
+);
+
 #endif // _X86INTRIN_H
