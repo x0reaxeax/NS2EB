@@ -261,7 +261,6 @@ EFI_STATUS efi_main(
 
     DisplayAverageMSRTime(AvgExecTimeBad, FALSE);
     DisplayAverageMSRTime(AvgExecTimeGood, TRUE);
-    
 
     FuzzMSRs();
     // wait for input
@@ -275,6 +274,9 @@ EFI_STATUS efi_main(
     CloseLog();
     FreePool(g_TempMemory1);
     FreePool(g_TempMemory2);
+
+    // Restore the original GPFault handler
+    RestoreGPFaultHandler();
 
     return EFI_SUCCESS;
 }

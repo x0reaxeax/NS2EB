@@ -361,3 +361,11 @@ VOID InstallGPFaultHandler(
         IA32_IDT_GATE_TYPE_INTERRUPT_32     // Present, DPL = 0, 64-bit interrupt gate
     );
 }
+
+VOID RestoreGPFaultHandler(
+    VOID
+) {
+    LPIDT_ENTRY lpIdtEntry = (LPIDT_ENTRY) GetCurrentIDT();
+    lpIdtEntry += EXCEPT_X64_GP_FAULT;
+    MemCpy(lpIdtEntry, &gOriginalFaultHandler, sizeof(IDT_ENTRY));
+}
