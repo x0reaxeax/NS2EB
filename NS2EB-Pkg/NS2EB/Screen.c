@@ -1,7 +1,9 @@
-#include "Screen.h"
-#include "stdfuncs.h"
+#include <Screen.h>
+#include <stdfuncs.h>
 
 #define MAX_SAFE_SCREEN_WIDTH  80
+
+GLOBAL EFI_FILE_PROTOCOL *g_LogFile = NULL;
 
 GLOBAL UINTN g_ScreenWidth = 0;
 GLOBAL UINTN g_ScreenHeight = 0;
@@ -17,9 +19,9 @@ VOID UpdateLogLines(
     CHAR16 *NewLine
 ) {
     for (UINTN i = 0; i < OUTPUT_LOGLINE_END - 1; i++) {
-        StrCpy(g_LogBuffer[i], g_LogBuffer[i + 1]);
+        StrCpy16(g_LogBuffer[i], g_LogBuffer[i + 1]);
     }
-    StrCpy(g_LogBuffer[OUTPUT_LOGLINE_END - 1], NewLine);
+    StrCpy16(g_LogBuffer[OUTPUT_LOGLINE_END - 1], NewLine);
 }
 
 VOID ClearLine(
@@ -49,18 +51,47 @@ VOID PrintLog(
     }
 }
 
-VOID AddLogLine(
+VOID EFIAPI PrintAt(
+    UINTN X, 
+    UINTN Y, 
+    CHAR16 *Format, 
+    ...
+) {
+    VA_LIST Marker;
+    VA_START(Marker, Format);
+
+    // Move cursor
+    gST->ConOut->SetCursorPosition(
+        gST->ConOut, 
+        X, 
+        Y
+    );
+
+    // Buffer for formatted output
+    CHAR16 Buffer[256] = { 0 };
+    UnicodeVSPrint(Buffer, sizeof(Buffer), Format, Marker);
+
+    // Print formatted output
+    gST->ConOut->OutputString(
+        gST->ConOut, 
+        Buffer
+    );
+
+    VA_END(Marker);
+};
+
+VOID EFIAPI AddLogLine(
     BOOLEAN DisplaToScreen,
     BOOLEAN LogToFile,
     CHAR16 *Line,
     ...
 ) {
-    va_list Args;
-    va_start(Args, Line);
+    VA_LIST Args;
+    VA_START(Args, Line);
 
     MemSet(g_TempMemory1, 0, 0x1000);
     MemSet(g_TempMemory2, 0, 0x1000);
-    VSPrint(g_TempMemory1, 0x1000-1, Line, Args);
+    UnicodeVSPrint(g_TempMemory1, 0x1000-1, Line, Args);
 
     if (DisplaToScreen) {
         UpdateLogLines(g_TempMemory1);
@@ -82,28 +113,20 @@ VOID AddLogLine(
         );
     }
 
-    va_end(Args);
+    VA_END(Args);
 }
 
-VOID DisplayAverageMSRTime(
+VOID EFIAPI DisplayAverageMSRTime(
     UINT64 Time,
     BOOLEAN bValidMSR
 ) {
     CONST UINTN OutputLine = bValidMSR ? OUTPUT_AVERAGE_GOOD_TIME : OUTPUT_AVERAGE_BAD_TIME;
     ClearLine(OutputLine);
-    CHAR16 TextBuffer[64] = { 0 };
-    SPrint(
-        TextBuffer, 
-        64, 
-        L"* %s MSR read time: %llu", 
-        bValidMSR ? L"Valid" : L"Invalid",
-        Time
-    );
 
     PrintAt(
         0,
-        OutputLine, 
-        L"[*] Average %s MSR read time: %llu", 
+        OutputLine,
+        L"[*] Average %ls MSR read time: %llu", 
         bValidMSR ? L"Valid" : L"Invalid",
         Time
     );
@@ -114,10 +137,8 @@ INT32 InitializeScreen(
 ) {
     EFI_STATUS Status;
 
-    Status = uefi_call_wrapper(
-        ST->ConOut->ClearScreen,
-        1,
-        ST->ConOut
+    Status = gST->ConOut->ClearScreen(
+        gST->ConOut
     );
 
     if (EFI_ERROR(Status)) {
@@ -125,11 +146,9 @@ INT32 InitializeScreen(
         return Status;
     }
 
-    Status = uefi_call_wrapper(
-        ST->ConOut->QueryMode,
-        4,
-        ST->ConOut,
-        ST->ConOut->Mode->Mode,
+    Status = gST->ConOut->QueryMode(
+        gST->ConOut,
+        gST->ConOut->Mode->Mode,
         &g_ScreenWidth,
         &g_ScreenHeight
     );

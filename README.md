@@ -1,6 +1,6 @@
 # EFI MSR FUZZER (NS2EB)
 
-### A UEFI MSR Fuzzer for uncovering processor secrets and undocumented MSRs
+### A UEFI MSR Fuzzer for uncovering processor secrets and undocumented MSRs (EDK2 version)
 
 NS2EB is a small EFI application for fuzzing Model-Specific Registers (MSRs) in x86_64 processors. Leveraging the fan-favorite [Time Stamp Counter](https://en.wikipedia.org/wiki/Time_Stamp_Counter) (`RDTSC`), custom General Protection Fault interrupt handler, and optionally a disassembly backing via [Zydis-Amalgamated](https://github.com/zyantific/zydis).
 
@@ -36,12 +36,13 @@ Please refer to the following picture for technical explanation:
 
 1. **Clone the repo:**
    ```bash
-   $ git clone https://github.com/x0reaxeax/NS2EB.git
+   $ git clone --recurse-submodules https://github.com/youruser/NS2EB.git
    $ cd NS2EB
    ```
 2. **Build the binary:**
 	```bash
-	$ make
+	$ chmod +x build.sh
+	$ ./build.sh
 	```
 3. **Copy the binary to a disk or an image on the target system:**
 	For testing under QEMU, `Mtools`' `mcopy` can be used to easily write to an image file:
@@ -50,8 +51,7 @@ Please refer to the following picture for technical explanation:
 	```
 	Or deploy to a UEFI-supported system.
 
-	**NOTE:** QEMU does **NOT** read any actual MSRs from the host system, and all of the MSR support is emulated. Observed anomalies are therefore just flukes, and no meaningful data should be expected from emulated runs. 
-	
+	**NOTE:** QEMU does **NOT** read any actual MSRs from the host system, and all of the MSR support is emulated (unless running in a **KVM-accelerated** VM, see [Important Info](#important-info)). Observed anomalies are therefore just flukes, and no meaningful data should be expected from emulated runs.   
 4. **Run the EFI application from an EFI Shell:**
 	```bash
 	$ efi.efi
@@ -143,6 +143,8 @@ You can re-enable this by adding the following line next to any existing `%defin
 %define ZYDIS_DISASM_BACKING
 ```
 
+*(Currently untested on EDK2 build)*
+
 ### Important Info
 
 * #### Logfile Size
@@ -153,6 +155,9 @@ You can re-enable this by adding the following line next to any existing `%defin
 	* The Interrupt Handler takes over execution on each attempt to read an invalid MSR, however, it should be noted that the Interrupt Handler executes all of its shenanigans first, before executing the second (closing) `RDTSC` instruction, to calculate a clock diff.
 		This should hopefully have no significant impact on the results, besides the invalid MSR times having a higher execution time ground.
 	* This can be also avoided almost completely by placing the `RDTSC` instruction at the top of the Interrupt Handler.
+* #### Testing on a KVM-accelerated VM
+	* If NS2EB is running inside a KVM-accelerated VM, be aware that some MSRs might be actually passed through to the host system instead of being fully emulated. This means that certain MSRs (e.g., TSC, APERF, MPERF,..) might (probably) return real host values, while other MSRs might be virtualized (e.g., VMX, MTRRs,..) and return fake values.
+
 * #### Testing on real hardware
 	* I hope it's fairly obvious that this tool should be used on your own risk, and that I am **NOT** responsible for any damages caused by this educational-purposes-based project.
 	This hacky superglued code can go haywire at any moment.
@@ -166,8 +171,8 @@ You can re-enable this by adding the following line next to any existing `%defin
  - Christopher Domas ([@xoreaxeaxeax](https://github.com/xoreaxeaxeax)) for the idea and the [incredible presentation](https://www.youtube.com/watch?v=XH0F9r0siTI).
  - [Zydis](https://github.com/zyantific/zydis) for amalgamated version of Zydis disassembler
  - [OSDev Wiki](https://wiki.osdev.org/) for technical descriptions
- - GNU-EFI for a lightweight alternative to EDK2
- - ChatGPT for Python scripts
+ - [TianoCore EDK2](https://github.com/tianocore/edk2)
+ - ChatGPT for Python scripts, help with EDK2 adaptation, and for mental support 🧡
 
 ### Disclaimer
 This project is licensed under the **MIT License**. The content of this repository exists purely for **educational purposes**, and the author is not responsible for any damages caused by this software.

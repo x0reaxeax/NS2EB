@@ -1,20 +1,15 @@
-#define GNU_EFI_USE_MS_ABI 1
-#define MS_ABI __attribute__((ms_abi))
-
-#include <efi/efi.h>
-#include <efi/efilib.h>
-
-#include "x86intrin.h"
-#include "stdfuncs.h"
-#include "Disassembler.h"
-#include "Screen.h"
+#include <x86intrin.h>
+#include <stdfuncs.h>
+#include <Disassembler.h>
+#include <Screen.h>
 
 #define NEED_MORE_SPEED
 
 #define MSR_MIN 0x0
 #define MAX_MSR 0x100000
 
-GLOBAL EFI_LOADED_IMAGE *g_LoadedImage = NULL;
+GLOBAL EFI_LOADED_IMAGE_PROTOCOL *g_LoadedImage = NULL;
+GLOBAL EFI_GUID gEfiLoadedImageProtocolGuid = EFI_LOADED_IMAGE_PROTOCOL_GUID;
 
 GLOBAL VOLATILE UINT32 g_ExecFlag = 1;          // Control flag for MSR fuzzing
 GLOBAL VOLATILE UINT32 g_InterruptFlag = 0;     // Indicates whether the interrupt handler was called
@@ -73,7 +68,7 @@ UINT64 GetAverageMSRExecutionTime(
 VOID FuzzMSRs(
     VOID
 ) {
-    MSR_T Msr;
+    VOLATILE MSR_T Msr;
     UINT64 TimeDiff = 0;
 
     for (Msr = MSR_MIN; Msr < MAX_MSR && (VOLATILE UINT32) g_ExecFlag; Msr++) {
@@ -106,9 +101,7 @@ EFI_STATUS OpenLog(
     EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FileSystem;
     EFI_STATUS Status;
 
-    Status = uefi_call_wrapper(
-        BS->HandleProtocol,
-        3,
+    Status = gBS->HandleProtocol(
         g_LoadedImage->DeviceHandle,
         &gEfiSimpleFileSystemProtocolGuid,
         (void **)&FileSystem
@@ -118,9 +111,7 @@ EFI_STATUS OpenLog(
         return Status;
     }
 
-    Status = uefi_call_wrapper(
-        FileSystem->OpenVolume,
-        2,
+    Status = FileSystem->OpenVolume(
         FileSystem,
         &Root
     );
@@ -129,9 +120,7 @@ EFI_STATUS OpenLog(
         return Status;
     }
 
-    Status = uefi_call_wrapper(
-        Root->Open,
-        5,
+    Status = Root->Open(
         Root,
         &g_LogFile,
         FileName,
@@ -149,31 +138,27 @@ EFI_STATUS CloseLog(
         return EFI_INVALID_PARAMETER;
     }
 
-    return uefi_call_wrapper(
-        g_LogFile->Close,
-        1,
-        g_LogFile
-    );
+    return g_LogFile->Close(g_LogFile);
 }
 
-EFI_STATUS NS2EB_Entry(
-    EFI_HANDLE ImageHandle, 
-    EFI_SYSTEM_TABLE *SystemTable
+EFI_STATUS EFIAPI UefiEntry(
+    IN EFI_HANDLE ImageHandle,
+    IN EFI_SYSTEM_TABLE *SystemTable
 ) {
+    UINTN EventIndex;
     EFI_STATUS Status = EFI_SUCCESS;
   
-    Status = uefi_call_wrapper(
-        SystemTable->BootServices->HandleProtocol,
-        3,
+    Status = gBS->HandleProtocol(
         ImageHandle,
         &gEfiLoadedImageProtocolGuid,
-        (void **) &g_LoadedImage
+        (VOID **)&g_LoadedImage
     );
     
     if (EFI_ERROR(Status)) {
         Print(L"[-] Failed to get LoadedImageProtocol: E%lx\n", Status);
         return Status;
     }
+
 
     Print(L"[*] Hello, UEFI!\n");
     Print(L"[*] ImageBase: 0x%llx\n", g_LoadedImage->ImageBase);
@@ -221,8 +206,7 @@ EFI_STATUS NS2EB_Entry(
         L"[==============================]\n"
         L"[*] Press any key to start..\n"
     );
-    WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
-
+    gBS->WaitForEvent(1, &gST->ConIn->WaitForKey, &EventIndex);
 
     if (EFI_SUCCESS != InitializeScreen()) {
         Print(L"[-] Failed to initialize screen\n");
@@ -232,8 +216,8 @@ EFI_STATUS NS2EB_Entry(
 
     PrintAt(
         0, 
-        OUTPUT_EXECFLAG_ADDR, 
-        L"[*] ExecFlag: 0x%llx\n", 
+        OUTPUT_EXECFLAG_ADDR,
+        L"[*] ExecFlag: 0x%08llx\n", 
         &g_ExecFlag
     );
 
@@ -264,12 +248,15 @@ EFI_STATUS NS2EB_Entry(
 
     FuzzMSRs();
     // wait for input
-    WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
 
     EnableWriteProtectionBit();
 
     // wait for a key press
-    WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+    gBS->WaitForEvent(
+        1, 
+        &gST->ConIn->WaitForKey, 
+        &EventIndex
+    );
 
     CloseLog();
     FreePool(g_TempMemory1);
@@ -277,6 +264,12 @@ EFI_STATUS NS2EB_Entry(
 
     // Restore the original GPFault handler
     RestoreGPFaultHandler();
+
+    gST->ConOut->SetCursorPosition(
+        gST->ConOut, 
+        0, 
+        g_ScreenHeight - 1
+    );
 
     return EFI_SUCCESS;
 }

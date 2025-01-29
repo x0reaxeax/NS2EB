@@ -1,7 +1,7 @@
 #ifndef _MSRFUZZ_SCREEN_H
 #define _MSRFUZZ_SCREEN_H
 
-#include "x86intrin.h"
+#include <x86intrin.h>
 
 EXTERN GLOBAL UINTN g_ScreenWidth;
 EXTERN GLOBAL UINTN g_ScreenHeight;
@@ -9,7 +9,7 @@ EXTERN GLOBAL UINTN g_ScreenHeight;
 EXTERN GLOBAL VOID *g_TempMemory1;
 EXTERN GLOBAL VOID *g_TempMemory2;
 
-EXTERN EFI_FILE_PROTOCOL *g_LogFile;
+EXTERN GLOBAL EFI_FILE_PROTOCOL *g_LogFile;
 
 #define LOGFILE_NAME                L"ns2eb.log"
 
@@ -25,12 +25,12 @@ INT32 InitializeScreen(
     VOID
 );
 
-VOID DisplayAverageMSRTime(
+VOID EFIAPI DisplayAverageMSRTime(
     UINT64 Time,
     BOOLEAN bValidMSR
 );
 
-VOID AddLogLine(
+VOID EFIAPI AddLogLine(
     BOOLEAN DisplaToScreen,
     BOOLEAN LogToFile,
     CHAR16 *Line,
@@ -39,6 +39,13 @@ VOID AddLogLine(
 
 VOID ClearLine(
     UINTN Line
+);
+
+VOID EFIAPI PrintAt(
+    UINTN X, 
+    UINTN Y, 
+    CHAR16 *Format, 
+    ...
 );
 
 #define AddLogLineScreen(Line, ...) AddLogLine(TRUE, FALSE, Line __VA_OPT__(, __VA_ARGS__))

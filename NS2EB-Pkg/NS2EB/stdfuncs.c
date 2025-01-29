@@ -1,5 +1,5 @@
-#include "stdfuncs.h"
-#include "Screen.h"
+#include <stdfuncs.h>
+#include <Screen.h>
 
 BOOLEAN MemCmp(
     LPVOID lpBuffer1,
@@ -88,6 +88,18 @@ VOID StrCpy8(
     Dest[i] = '\0';
 }
 
+VOID StrCpy16(
+    CHAR16* Dest,
+    CONST CHAR16* Src
+) {
+    UINTN i = 0;
+    while (Src[i] != '\0') {
+        Dest[i] = Src[i];
+        i++;
+    }
+    Dest[i] = '\0';
+}
+
 VOID StrCat8(
     CHAR* Dest,
     CONST CHAR* Src
@@ -144,10 +156,10 @@ CHAR *StrChr8(
 
 
 // Thanks ChatGPT <3
-INT32 Vsprintf8(
+INT32 EFIAPI Vsprintf8(
     CHAR *Buffer, 
     CONST CHAR *Format, 
-    va_list Args
+    VA_LIST Args
 ) {
     INT32 Length = 0;
 
@@ -187,7 +199,7 @@ INT32 Vsprintf8(
             switch (*Format) {
                 case 'd':
                 case 'i': {
-                    INT64 Value = is_long ? va_arg(Args, INT64) : (is_short ? (short)va_arg(Args, INT32) : va_arg(Args, INT32));
+                    INT64 Value = is_long ? VA_ARG(Args, INT64) : (is_short ? (short)VA_ARG(Args, INT32) : VA_ARG(Args, INT32));
                     if (Value < 0) {
                         Buffer[Length++] = '-';
                         Value = -Value;
@@ -209,7 +221,7 @@ INT32 Vsprintf8(
                     break;
                 }
                 case 'u': {
-                    UINT64 Value = is_long ? va_arg(Args, UINT64) : (is_short ? (unsigned short)va_arg(Args, UINT32) : va_arg(Args, UINT32));
+                    UINT64 Value = is_long ? VA_ARG(Args, UINT64) : (is_short ? (unsigned short)VA_ARG(Args, UINT32) : VA_ARG(Args, UINT32));
                     CHAR TempBuffer[32];
                     INT32 TempLength = 0;
                     do {
@@ -227,7 +239,7 @@ INT32 Vsprintf8(
                     break;
                 }
                 case 'o': {
-                    UINT64 Value = is_long ? va_arg(Args, UINT64) : va_arg(Args, UINT32);
+                    UINT64 Value = is_long ? VA_ARG(Args, UINT64) : VA_ARG(Args, UINT32);
                     CHAR TempBuffer[32];
                     INT32 TempLength = 0;
                     do {
@@ -246,7 +258,7 @@ INT32 Vsprintf8(
                 }
                 case 'x':
                 case 'X': {
-                    UINT64 Value = is_long ? va_arg(Args, UINT64) : va_arg(Args, UINT32);
+                    UINT64 Value = is_long ? VA_ARG(Args, UINT64) : VA_ARG(Args, UINT32);
                     CHAR TempBuffer[32];
                     INT32 TempLength = 0;
                     do {
@@ -265,7 +277,7 @@ INT32 Vsprintf8(
                     break;
                 }
                 case 'p': {
-                    uintptr_t Value = (uintptr_t)va_arg(Args, void*);
+                    QWORD Value = (QWORD)VA_ARG(Args, void*);
                     Buffer[Length++] = '0';
                     Buffer[Length++] = 'x';
                     CHAR TempBuffer[32];
@@ -288,7 +300,7 @@ INT32 Vsprintf8(
                 case 'f':
                 case 'e':
                 case 'E': {
-                    double Value = is_long_double ? va_arg(Args, long double) : va_arg(Args, double);
+                    double Value = is_long_double ? VA_ARG(Args, long double) : VA_ARG(Args, double);
                     if (Value < 0) {
                         Buffer[Length++] = '-';
                         Value = -Value;
@@ -320,7 +332,7 @@ INT32 Vsprintf8(
                 case 'L': { // Handle %Lf
                     if (*(Format + 1) == 'f') {
                         Format++; // Skip 'f'
-                        long double Value = va_arg(Args, long double);
+                        long double Value = VA_ARG(Args, long double);
                         if (Value < 0) {
                             Buffer[Length++] = '-';
                             Value = -Value;
@@ -351,12 +363,12 @@ INT32 Vsprintf8(
                     break;
                 }
                 case 'c': {
-                    CHAR Value = (CHAR)va_arg(Args, INT32);
+                    CHAR Value = (CHAR)VA_ARG(Args, INT32);
                     Buffer[Length++] = Value;
                     break;
                 }
                 case 's': {
-                    CHAR *Value = va_arg(Args, CHAR*);
+                    CHAR *Value = VA_ARG(Args, CHAR*);
                     while (*Value != '\0') {
                         Buffer[Length++] = *Value++;
                     }
@@ -367,7 +379,7 @@ INT32 Vsprintf8(
                     break;
                 }
                 case 'n': {
-                    *(va_arg(Args, INT32*)) = Length;
+                    *(VA_ARG(Args, INT32*)) = Length;
                     break;
                 }
                 default: {
@@ -385,11 +397,15 @@ INT32 Vsprintf8(
     return Length;
 }
 
-INT32 Sprintf8(CHAR *Buffer, const CHAR *Format, ...) {
-    va_list Args;
-    va_start(Args, Format);
+INT32 EFIAPI Sprintf8(
+    CHAR *Buffer, 
+    const CHAR *Format,
+    ...
+) {
+    VA_LIST Args;
+    VA_START(Args, Format);
     INT32 Result = Vsprintf8(Buffer, Format, Args);
-    va_end(Args);
+    VA_END(Args);
     return Result;
 }
 
@@ -508,9 +524,7 @@ EFI_STATUS FWrite(
     UINTN Size
 ) {
     EFI_STATUS Status;
-    Status = uefi_call_wrapper(
-        g_LogFile->Write,
-        3,
+    Status = g_LogFile->Write(
         g_LogFile,
         &Size,
         Buffer

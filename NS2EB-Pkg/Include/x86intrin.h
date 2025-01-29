@@ -1,23 +1,34 @@
 #ifndef _X86INTRIN_H
 #define _X86INTRIN_H
 
-#if !defined(GNU_EFI_USE_MS_ABI) || !defined (MS_ABI)
-#define GNU_EFI_USE_MS_ABI 1
-#define MS_ABI __attribute__((ms_abi))
-#endif
+#define MS_ABI          __attribute__((ms_abi))
+#define SYSV_ABI        __attribute__((sysv_abi))
 
-#define SYSV_ABI __attribute__((sysv_abi))
+#include <Uefi.h>                          // Main UEFI definitions
+#include <Library/UefiBootServicesTableLib.h>  // Access Boot Services (`gBS`)
+#include <Library/UefiRuntimeServicesTableLib.h>  // Access Runtime Services (`gRT`)
+#include <Library/UefiLib.h>               // Print() and other basic UEFI functions
+#include <Library/MemoryAllocationLib.h>   // AllocatePool(), FreePool()
+#include <Library/BaseMemoryLib.h>         // CopyMem(), SetMem(), CompareMem()
+#include <Library/DebugLib.h>              // ASSERT(), DEBUG()>
+#include <Library/PrintLib.h>
+#include <Protocol/DebugSupport.h>         // EFI_EXCEPTION_TYPE
+#include <Protocol/LoadedImage.h>
 
-#include <efi/efi.h>
-#include <efi/efilib.h>
 
 #define NAKED           __attribute__((naked))
-#define UNUSED          __attribute_maybe_unused__
+#define UNUSED          __attribute__((unused))
 #define PURE            __attribute_pure__
 #define MAYBE_UNUSED    UNUSED
-#define PACKED          __attribute__((packed))
+#define CPACKED         __attribute__((packed))
 #define INLINE          __attribute__((always_inline))
+#define ALIGN(x)        __attribute__((aligned(x)))
 #define EXTERN          extern
+#define VOLATILE        volatile
+#define EFI_NORETURN    __attribute__((noreturn))
+#ifndef CONST
+#define CONST           const
+#endif
 //#define MALLOC        __attribute_malloc__
 
 #define GLOBAL
@@ -57,6 +68,8 @@ typedef char            CHAR;
 typedef CHAR8           BYTE;
 typedef BYTE*           LPBYTE;
 typedef VOID*           LPVOID;
+typedef UINT64          QWORD;
+typedef UINT64         *LPQWORD;
 
 typedef CHAR*           PCHAR;
 typedef PCHAR           LPSTR;
@@ -79,57 +92,6 @@ typedef struct {
     UINT64 Available2 : 11;
     UINT64 NoExecute : 1;
 } PageTableEntry;
-
-typedef union {
-    struct {
-        UINT32  PE         : 1; // Protection Enable
-        UINT32  MP         : 1; // Monitor coProcessor
-        UINT32  EM         : 1; // Emulation
-        UINT32  TS         : 1; // Task Switched
-        UINT32  ET         : 1; // Extension Type
-        UINT32  NE         : 1; // Numeric Error
-        UINT32  Reserved0  : 10;
-        UINT32  WP         : 1; // Write Protect
-        UINT32  Reserved1  : 1;
-        UINT32  AM         : 1; // Alignment Mask
-        UINT32  Reserved2  : 10;
-        UINT32  NW         : 1; // Not Write-through
-        UINT32  CD         : 1; // Cache Disable
-        UINT32  PG         : 1; // Paging
-    } Bits;
-    UINTN UintN;
-} IA32_CR0, CR0_REGISTER;
-
-// cr4
-typedef union {
-    struct {
-        UINT32  VME        : 1; // Virtual-8086 Mode Extensions
-        UINT32  PVI        : 1; // Protected-Mode Virtual Interrupts
-        UINT32  TSD        : 1; // Time Stamp Disable
-        UINT32  DE         : 1; // Debugging Extensions
-        UINT32  PSE        : 1; // Page Size Extensions
-        UINT32  PAE        : 1; // Physical Address Extension
-        UINT32  MCE        : 1; // Machine-Check Enable
-        UINT32  PGE        : 1; // Page Global Enable
-        UINT32  PCE        : 1; // Performance-Monitoring Counter Enable
-        UINT32  OSFXSR     : 1; // OS Support for FXSAVE and FXRSTOR instructions
-        UINT32  OSXMMEXCPT : 1; // OS Support for Unmasked SIMD Floating-Point Exceptions
-        UINT32  UMIP       : 1; // User-Mode Instruction Prevention
-        UINT32  LA57       : 1; // Linear Address 57
-        UINT32  VMXE       : 1; // VMX Enable
-        UINT32  SMXE       : 1; // SMX Enable
-        UINT32  Reserved3  : 1;
-        UINT32  FSGSBASE   : 1; // FS/GS Base Access Instructions Enable
-        UINT32  PCIDE      : 1; // PCID Enable
-        UINT32  OSXSAVE    : 1; // XSAVE and Processor Extended States Enable
-        UINT32  Reserved4  : 1;
-        UINT32  SMEP       : 1; // Supervisor-Mode Execution Prevention
-        UINT32  SMAP       : 1; // Supervisor-Mode Access Prevention
-        UINT32  PKE        : 1; // Protection-Key Enable
-        UINT32  Reserved5  : 9;
-    } Bits;
-    UINTN UintN;
-} IA32_CR4, CR4_REGISTER;
 
 ///////////////////////////////////////////
 /// MSRs 
@@ -157,7 +119,6 @@ typedef union {
 } MSR_CORE_IA32_EFER_REGISTER;
 ///////////////////////////////////////////
 ///////////////////////////////////////////
-#define SIGNATURE_16 EFI_SIGNATURE_16
 #define SIGNATURE_32(A,B,C,D) (SIGNATURE_16 (A, B) | (SIGNATURE_16 (C, D) << 16))
 
 ///////////////////////////////////////////
@@ -174,7 +135,7 @@ typedef struct {
     UINT16 Isr_mid;         // Middle 16 bits of ISR address
     UINT32 Isr_high;        // Upper 32 bits of ISR address
     UINT32 Zero;            // Reserved, set to zero
-} PACKED IDT_ENTRY, *LPIDT_ENTRY;
+} CPACKED IDT_ENTRY, *LPIDT_ENTRY;
 
 typedef struct {
     UINT16 LimitLow;    // Lower 16 bits of the segment limit
@@ -183,33 +144,17 @@ typedef struct {
     UINT8  Access;      // Access flags
     UINT8  Granularity; // Granularity and the upper 4 bits of the limit
     UINT8  BaseHigh;    // Upper 8 bits of the base address
-} PACKED GDT_ENTRY, *LPGDT_ENTRY;
-
-typedef union {
-  struct {
-    UINT32    OffsetLow   : 16; ///< Offset bits 15..0.
-    UINT32    Selector    : 16; ///< Selector.
-    UINT32    Reserved_0  : 8;  ///< Reserved.
-    UINT32    GateType    : 8;  ///< Gate Type.  See #defines above.
-    UINT32    OffsetHigh  : 16; ///< Offset bits 31..16.
-    UINT32    OffsetUpper : 32; ///< Offset bits 63..32.
-    UINT32    Reserved_1  : 32; ///< Reserved.
-  } Bits;
-  struct {
-    UINT64    Uint64;
-    UINT64    Uint64_1;
-  } Uint128;
-} IA32_IDT_GATE_DESCRIPTOR;
+} CPACKED GDT_ENTRY, *LPGDT_ENTRY;
 
 typedef struct {
     UINT16 Limit;
     UINT64 Base;
-} PACKED IDT_DESCRIPTOR, *LPIDT_DESCRIPTOR;
+} CPACKED IDT_DESCRIPTOR, *LPIDT_DESCRIPTOR;
 
 typedef struct {
     UINT16 Limit;
     UINT64 Base;
-} PACKED GDT_DESCRIPTOR, *LPGDT_DESCRIPTOR;
+} CPACKED GDT_DESCRIPTOR, *LPGDT_DESCRIPTOR;
 
 typedef struct {
     UINT64 RAX;
@@ -232,9 +177,9 @@ typedef struct {
     UINT64 CS;
     UINT64 SS;
     UINT64 RFLAGS;
-} PACKED CONTEXT, *LPCONTEXT;
+} CPACKED CONTEXT, *LPCONTEXT;
 
-EXTERN GLOBAL EFI_LOADED_IMAGE *g_LoadedImage;
+EXTERN GLOBAL EFI_LOADED_IMAGE_PROTOCOL *g_LoadedImage;
 
 EXTERN GLOBAL CONTEXT g_Context;
 EXTERN GLOBAL BYTE g_FXSaveArray[512];
@@ -348,6 +293,10 @@ UINT64 ReadSavedContext(
     IN READ_CONTEXT_REG eRegister
 );
 #else
+VOID _mm_DebugArtifact(
+    VOID
+);
+
 UNUSED BOOLEAN EFIAPI ProbeAddress(
     UINT64 targetAddress
 );
