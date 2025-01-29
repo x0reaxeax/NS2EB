@@ -1,0 +1,27 @@
+[Defines]
+  INF_VERSION = 0x00010005
+  BASE_NAME   = NS2EB
+  FILE_GUID   = 0405b991-de49-11ef-a5f9-7c8ae1a193a5
+  MODULE_TYPE = UEFI_APPLICATION
+  VERSION_STRING = 1.0
+  ENTRY_POINT = NS2EB_Entry
+
+[Sources]
+  CPU.asm
+  MSR.asm
+  Disassembler.c
+  NS2EB.c
+  Screen.c
+  x86intrin.c
+  Zydis.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  UefiLib
+  UefiBootServicesTableLib
+
+[BuildOptions]
+  NASM_ASFLAGS = -f elf64
