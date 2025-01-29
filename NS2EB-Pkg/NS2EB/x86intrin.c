@@ -342,9 +342,7 @@ VOID InstallInterruptHandler(
     IN LPVOID lpHandler,
     IN EFI_EXCEPTION_TYPE eExceptionType,
     IN UINT8 eGateType
-) {
-    _mm_DebugArtifact();
-    
+) { 
     SetIDTEntry(
         eExceptionType, 
         (UINT64) lpHandler,
