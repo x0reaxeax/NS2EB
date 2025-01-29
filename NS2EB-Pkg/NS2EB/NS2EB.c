@@ -156,7 +156,7 @@ EFI_STATUS CloseLog(
     );
 }
 
-EFI_STATUS efi_main(
+EFI_STATUS NS2EB_Entry(
     EFI_HANDLE ImageHandle, 
     EFI_SYSTEM_TABLE *SystemTable
 ) {
