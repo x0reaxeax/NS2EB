@@ -1,7 +1,7 @@
 #ifndef _STD_FUNCS_H
 #define _STD_FUNCS_H
 
-#include "x86intrin.h"
+#include <x86intrin.h>
 
 #define ARRAYSIZE(x) (sizeof(x) / sizeof(x[0]))
 
@@ -43,6 +43,11 @@ VOID StrCpy8(
     CONST CHAR* Src
 );
 
+VOID StrCpy16(
+    CHAR16* Dest,
+    CONST CHAR16* Src
+);
+
 VOID StrCat8(
     CHAR* Dest,
     CONST CHAR* Src
@@ -64,16 +69,16 @@ CHAR *StrChr8(
     CHAR Char
 );
 
-INT32 Sprintf8(
+INT32 EFIAPI Sprintf8(
     CHAR *Buffer,
     CONST CHAR *Format,
     ...
 );
 
-INT32 Vsprintf8(
+INT32 EFIAPI Vsprintf8(
     CHAR *Buffer, 
     CONST CHAR *Format, 
-    va_list Args
+    VA_LIST Args
 );
 
 CHAR8 *Itoa8(

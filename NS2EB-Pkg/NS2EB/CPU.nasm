@@ -7,6 +7,7 @@ global _mm_InterruptHandler
 global _mm_ReadSavedContext
 global _mm_GetCurrentGDT
 global _mm_GetCurrentIDT
+global _mm_DebugArtifact
 
 struc CONTEXT_AMD64
     .RAX    resq 1
@@ -44,6 +45,11 @@ section .text
     ; );
     extern InternalHandlerRoutine       ; Declare the external C internal handler routine
 
+_mm_DebugArtifact:
+    xor eax, eax
+    mov eax, 0xf00ff00f
+    xor eax, eax
+    ret
 
 ; LPVOID EFIAPI _mm_GetCurrentGDT(
 ;    OUT LPGDT_DESCRIPTOR

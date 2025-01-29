@@ -1,6 +1,6 @@
-#include "x86intrin.h"
-#include "stdfuncs.h"
-#include "Screen.h"
+#include <x86intrin.h>
+#include <stdfuncs.h>
+#include <Screen.h>
 
 extern VOID _mm_InterruptHandler();
 
@@ -15,7 +15,7 @@ GLOBAL UINT64 g_RAX = 0;
 
 STATIC GLOBAL IDT_ENTRY gOriginalFaultHandler = { 0 };
 
-STATIC NAKED VOID __LoadIDT(
+STATIC UNUSED NAKED VOID __LoadIDT(
     VOID
 ) {
     __asm__ __volatile__ (
@@ -343,6 +343,8 @@ VOID InstallInterruptHandler(
     IN EFI_EXCEPTION_TYPE eExceptionType,
     IN UINT8 eGateType
 ) {
+    _mm_DebugArtifact();
+    
     SetIDTEntry(
         eExceptionType, 
         (UINT64) lpHandler,

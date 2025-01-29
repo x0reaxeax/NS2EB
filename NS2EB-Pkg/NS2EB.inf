@@ -4,16 +4,17 @@
   FILE_GUID   = 0405b991-de49-11ef-a5f9-7c8ae1a193a5
   MODULE_TYPE = UEFI_APPLICATION
   VERSION_STRING = 1.0
-  ENTRY_POINT = NS2EB_Entry
+  ENTRY_POINT = UefiEntry
 
 [Sources]
-  CPU.asm
-  MSR.asm
-  Disassembler.c
-  NS2EB.c
-  Screen.c
-  x86intrin.c
-  Zydis.c
+  NS2EB/CPU.nasm
+  NS2EB/MSR.nasm
+  NS2EB/Disassembler.c
+  NS2EB/NS2EB.c
+  NS2EB/Screen.c
+  NS2EB/Zydis.c
+  NS2EB/stdfuncs.c
+  NS2EB/x86intrin.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -22,6 +23,10 @@
   BaseLib
   UefiLib
   UefiBootServicesTableLib
+  UefiApplicationEntryPoint
 
 [BuildOptions]
-  NASM_ASFLAGS = -f elf64
+  RELEASE_GCC5_X64_CC_FLAGS = -I$(WORKSPACE)/NS2EB-Pkg/Include
+  DEBUG_GCC5_X64_CC_FLAGS = -I$(WORKSPACE)/NS2EB-Pkg/Include
+  DEBUG_GCC5_X64_NASM_FLAGS = -f elf64 -g
+  RELEASE_GCC5_X64_NASM_FLAGS = -f elf64 -O2
