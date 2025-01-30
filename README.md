@@ -34,27 +34,30 @@ Please refer to the following picture for technical explanation:
 
 ### Getting Started
 
-1. **Clone the repo:**
+1. **Clone the repo and get latest submodules:**
    ```bash
-   $ git clone --recurse-submodules https://github.com/x0reaxeax/NS2EB.git
+   $ git clone https://github.com/x0reaxeax/NS2EB.git
    $ cd NS2EB
+   $ git checkout EDK2
+   $ git submodule update --init --recursive
    ```
-2. **Build the binary:**
+2. **Build EDK2 BaseTools and NS2EB binary:**
 	```bash
-	$ chmod +x build.sh
-	$ ./build.sh
+   	$ make -C edk2/BaseTools
+ 	# Build NS2EB <RELEASE|DEBUG>
+   	$ ./build.sh RELEASE
 	```
 3. **Copy the binary to a disk or an image on the target system:**
 	For testing under QEMU, `Mtools`' `mcopy` can be used to easily write to an image file:
 	```bash
-	$ mcopy -i disk.img /path/to/target/efi.efi ::
+	$ mcopy -i disk.img /path/to/target/NS2EB.efi ::
 	```
 	Or deploy to a UEFI-supported system.
 
 	**NOTE:** QEMU does **NOT** read any actual MSRs from the host system, and all of the MSR support is emulated (unless running in a **KVM-accelerated** VM, see [Important Info](#important-info)). Observed anomalies are therefore just flukes, and no meaningful data should be expected from emulated runs.   
 4. **Run the EFI application from an EFI Shell:**
 	```bash
-	$ efi.efi
+	$ NS2EB.efi
 	```
  	Preview:
  	![rundemo](https://i.imgur.com/WRQEo4w.png)
