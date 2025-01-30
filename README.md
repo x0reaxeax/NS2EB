@@ -36,7 +36,7 @@ Please refer to the following picture for technical explanation:
 
 1. **Clone the repo:**
    ```bash
-   $ git clone --recurse-submodules https://github.com/youruser/NS2EB.git
+   $ git clone --recurse-submodules https://github.com/x0reaxeax/NS2EB.git
    $ cd NS2EB
    ```
 2. **Build the binary:**
