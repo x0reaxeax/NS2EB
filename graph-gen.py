@@ -40,7 +40,8 @@ def plot_msr_data(data):
     # Format the X-axis as hexadecimal
     ax = plt.gca()
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"0x{int(x):X}"))
-    
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x)}'))
+
     plt.tight_layout()
     plt.show()
 
